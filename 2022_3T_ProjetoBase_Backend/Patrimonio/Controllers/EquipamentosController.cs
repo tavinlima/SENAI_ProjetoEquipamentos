@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Patrimonio.Contexts;
 using Patrimonio.Domains;
+using Patrimonio.Interfaces;
 using Patrimonio.Utils;
 
 namespace Patrimonio.Controllers
@@ -15,55 +11,55 @@ namespace Patrimonio.Controllers
     [ApiController]
     public class EquipamentosController : ControllerBase
     {
-        private readonly PatrimonioContext _context;
+        private readonly IEquipamentoRepository _equipamentoRepository;
 
-        public EquipamentosController(PatrimonioContext context)
+        public EquipamentosController(IEquipamentoRepository repo)
         {
-            _context = context;
+            _equipamentoRepository = repo;
         }
 
         // GET: api/Equipamentos
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Equipamento>>> GetEquipamentos()
+        public IActionResult GetEquipamentos()
         {
-            return await _context.Equipamentos.ToListAsync();
+            return Ok(_equipamentoRepository.Listar());
         }
 
         // GET: api/Equipamentos/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Equipamento>> GetEquipamento(int id)
+        public IActionResult GetEquipamento(int id)
         {
-            var equipamento = await _context.Equipamentos.FindAsync(id);
+            var equipamento =  _equipamentoRepository.BuscarPorID(id);
 
             if (equipamento == null)
             {
                 return NotFound();
             }
 
-            return equipamento;
+            return Ok(equipamento);
         }
 
         // PUT: api/Equipamentos/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutEquipamento(int id, Equipamento equipamento)
+        public IActionResult PutEquipamento(int id, Equipamento equipamento)
         {
             if (id != equipamento.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(equipamento).State = EntityState.Modified;
 
             try
             {
-                await _context.SaveChangesAsync();
+                _equipamentoRepository.Alterar(equipamento);
+                return Ok();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception erro)
             {
-                if (!EquipamentoExists(id))
+                if (equipamento.Id == 0 || equipamento.NomePatrimonio == null)
                 {
-                    return NotFound();
+                    return NotFound(erro);
                 }
                 else
                 {
@@ -71,13 +67,12 @@ namespace Patrimonio.Controllers
                 }
             }
 
-            return NoContent();
         }
 
         // POST: api/Equipamentos
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Equipamento>> PostEquipamento([FromForm] Equipamento equipamento, IFormFile arquivo)
+        public IActionResult PostEquipamento([FromForm] Equipamento equipamento, IFormFile arquivo)
         {
 
             #region Upload da Imagem com extensões permitidas apenas
@@ -100,34 +95,29 @@ namespace Patrimonio.Controllers
             // Pegando o horário do sistema
             equipamento.DataCadastro = DateTime.Now;
 
-            _context.Equipamentos.Add(equipamento);
-            await _context.SaveChangesAsync();
+            _equipamentoRepository.Cadastrar(equipamento);
+            
 
             return Created("Equipamento", equipamento);
         }
 
         // DELETE: api/Equipamentos/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteEquipamento(int id)
+        public IActionResult DeleteEquipamento(int id)
         {
-            var equipamento = await _context.Equipamentos.FindAsync(id);
-            if (equipamento == null)
+            var equipamentoBuscado = _equipamentoRepository.BuscarPorID(id);
+            if (equipamentoBuscado == null)
             {
                 return NotFound();
             }
 
-            _context.Equipamentos.Remove(equipamento);
-            await _context.SaveChangesAsync();
+            _equipamentoRepository.Excluir(equipamentoBuscado);
 
             // Removendo Arquivo do servidor
-            Upload.RemoverArquivo(equipamento.Imagem);
+            Upload.RemoverArquivo(equipamentoBuscado.Imagem);
 
-            return NoContent();
+            return Ok();
         }
 
-        private bool EquipamentoExists(int id)
-        {
-            return _context.Equipamentos.Any(e => e.Id == id);
-        }
     }
 }

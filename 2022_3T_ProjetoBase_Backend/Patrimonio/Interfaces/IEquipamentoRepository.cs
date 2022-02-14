@@ -9,7 +9,7 @@ namespace Patrimonio.Interfaces
         Equipamento Cadastrar(Equipamento equipamento);
         Equipamento Alterar(Equipamento equipamento);
         void Excluir(Equipamento equipamento);
-        IEnumerable<Equipamento> Listar();
+        List<Equipamento> Listar();
         Equipamento BuscarPorID(int id);
     }
 }

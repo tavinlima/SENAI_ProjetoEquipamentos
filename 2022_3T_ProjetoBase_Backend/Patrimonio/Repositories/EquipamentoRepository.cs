@@ -39,7 +39,7 @@ namespace Patrimonio.Repositories
             ctx.SaveChangesAsync();
         }
 
-        public IEnumerable<Equipamento> Listar()
+        public List<Equipamento> Listar()
         {
             return ctx.Equipamentos.ToList();
         }
